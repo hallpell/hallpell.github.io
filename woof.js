@@ -1188,10 +1188,6 @@ Woof.prototype.Bundle = function({project = undefined, components = [], x = 0, y
   //   creating and attaching new ones later
   this.detachListeners();
     
-  // detach the event listeners from the superclass, we will be
-  //   creating and attaching new ones later
-  this.detachListeners();
-    
   this.addComponent = function(sprite, offsetX=0, offsetY=0, offsetAngle=0) {
     sprite.offsetX = offsetX
     sprite.offsetY = offsetY
