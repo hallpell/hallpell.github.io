@@ -1120,8 +1120,8 @@ Woof.prototype.Bundle = function({project = undefined, components = [], x = 0, y
   this.privateShowing = true
   this.privateBrightness = brightness
 
-  Woof.prototype.Sprite.call(this);
-
+  Woof.prototype.Sprite.call(this, arguments[0]);
+    
   // detach the event listeners from the superclass, we will be
   //   creating and attaching new ones later
   this.detachListeners();
@@ -1400,7 +1400,7 @@ Woof.prototype.Bundle = function({project = undefined, components = [], x = 0, y
 }
 
 Woof.prototype.Text = function({project = undefined, text = "Text", size = 12, color = "black", fontFamily = "arial", textAlign = "center"} = {}) {
-  Woof.prototype.Bundle.call(this);
+  Woof.prototype.Bundle.call(this, arguments[0]);
 
   this.privateText = text;
   this.privateSize = size;
