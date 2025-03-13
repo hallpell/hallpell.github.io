@@ -1410,9 +1410,6 @@ Woof.prototype.Text = function({project = undefined, text = "Text", size = 12, c
       return this.privateText;
     },
     set: function(value) {
-      if (!(typeof value == 'function' || typeof value == 'string')) {
-	throw new TypeError("Text.text must be set to a function or a string, given: " + value);
-      }
       this.privateText = value;
       this._render();
     }
