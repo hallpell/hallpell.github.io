@@ -1117,7 +1117,11 @@ Woof.prototype.Bundle = function({project = undefined, components = [], x = 0, y
   this.privateShowing = true
   this.privateBrightness = brightness
 
-  Woof.prototype.Sprite.call(this, arguments[0]);
+  Woof.prototype.Sprite.call(this, this.arguments[0]);
+
+  // detach the event listeners from the superclass, we will be
+  //   creating and attaching new ones later
+  this.detachListeners();
     
   // detach the event listeners from the superclass, we will be
   //   creating and attaching new ones later
