@@ -1702,9 +1702,9 @@ Woof.prototype.TextPrimative = function({project = undefined, text = "Text", siz
       return this.privateFontFamily;
     },
     set: function(value) {
+      this.privateFontFamily = value;
       this._updateWidth();
       this._updateHeight();
-      this.privateFontFamily = value;
     }
   });
 
