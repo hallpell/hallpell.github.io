@@ -550,14 +550,48 @@ function Woof({global = false, fullScreen = false, height = 500, width = 350} = 
   // 1. JavaScript loops are synchronous, and Woof loops are asynchronous
   // 2. JavaScript loops are wicked fast, and Woof loops happen as fast as Woof forevers (about 30 times per second, in line with 30fps) which allow users to animate with them
   thisContext._repeats = [];
-  thisContext.repeat = (times, func, after) => {
-    if (typeof func != "function" || typeof times != "number" || (after !== undefined && typeof after != "function")) { throw new TypeError("repeat(times, function, afterFunction) requires a number and a function, and optionally accepts an extra function."); }
-    thisContext._repeats.push(new Woof.prototype.Repeat(times, func, after));
+  thisContext.repeat = (times, func, after, blocking=true) => {
+    if (typeof func != "function" ||
+	typeof times != "number" ||
+	(after !== undefined && typeof after != "function")) {
+      throw new TypeError("repeat(times, function, afterFunction) requires a number and a function, and optionally accepts an extra function.");
+    }
+
+    return new Promise((resolve) => {
+      thisContext._repeats.push(new Woof.prototype.RepeatUntil(times, func, (i) => {
+	  if (after) {
+	    if (after.length) {
+	      after(i);
+	    } else {
+	      after();
+	    }
+	  }
+	  resolve();
+	}, blocking));
+      });
   };
-  thisContext.repeatUntil = (condition, func, after) => {
-    if (typeof func != "function" || typeof condition != "function" || (after !== undefined && typeof after != "function")) { throw new TypeError("repeatUntil(conditionFunction, function, afterFunction) requires two functions, and optionally accepts an extra function."); }
-    thisContext._repeats.push(new Woof.prototype.RepeatUntil(condition, func, after));
+    
+  thisContext.repeatUntil = (condition, func, after, blocking=true) => {
+    if (typeof func != "function" ||
+	typeof condition != "function" ||
+	(after !== undefined && typeof after != "function")) {
+      throw new TypeError("repeatUntil(conditionFunction, function, afterFunction) requires two functions, and optionally accepts an extra function.");
+    }
+
+    return new Promise((resolve) => {
+      thisContext._repeats.push(new Woof.prototype.RepeatUntil(condition, func, (i) => {
+	if (after) {
+	  if (after.length) {
+	    after(i);
+	  } else {
+	    after();
+	  }
+	}
+	resolve();
+      }, blocking));
+    });
   };
+    
   thisContext._runRepeats = () => {
     thisContext._repeats.forEach(repeat => {
       repeat.next();
@@ -613,8 +647,18 @@ function Woof({global = false, fullScreen = false, height = 500, width = 350} = 
   thisContext._afters = []; 
   thisContext.after = (time, units, func) => {
     var milis = Woof.prototype.unitsToMiliseconds(time, units);
-    if (typeof func != "function" || typeof time != "number") { throw new TypeError("after(time, units, function) requires a number, unit and function input."); }
-    thisContext._afters.push(setTimeout(func, milis));
+    if (typeof time != "number") {
+      throw new TypeError("after(time, units[, function]) requires a number, unit and an optional function input.");
+    }
+
+    return new Promise((resolve, reject) => {
+      thisContext._afters.push(setTimeout(() => {
+	if (func) {
+	  func();
+	}
+	resolve();
+      }, milis));
+    });
   };
   
   thisContext._renderSprites = () => {
@@ -2200,11 +2244,18 @@ Woof.prototype.customSprite = function(subClass) {
   }
 }
 
-Woof.prototype.Repeat = function(times, func, after) {
+/*
+  //Deleting because I can just have repeats just give a number as
+  // condition and compare that against curTimes,
+  // which minimizes repeated code
+  Woof.prototype.Repeat = function(times, func, after, blocking) {
   this.func = func;
   this.curTimes = 0;
   this.times = Math.floor(times);
+  this.blocking = blocking;
+  this.funcDone = true;
   this.done = false;
+
   
   this.next = () => {
     if (this.done){
@@ -2229,45 +2280,73 @@ Woof.prototype.Repeat = function(times, func, after) {
       }
     }
   };
-};
-  
-Woof.prototype.RepeatUntil = function(condition, func, after){
-  // TODO if (typeof condition !== "string") { throw Error("You must give repeatUntil a string condition in quotes. You gave it: " + condition); }
+};*/
+
+// Precondition: condition is either a function or an integer
+Woof.prototype.RepeatUntil = function(condition, func, after, blocking=false){
   this.func = func;
   this.curTimes = 0;
-  // the number of times it's been repeated. Only gets used if the functions func or after have an argument
   this.condition = condition;
+  this.blocking = blocking;
+
+  // if the previous repetition of next is done
+  //   and we're ready to start a new one
+  //   (only used if blocking is true)
+  this.funcDone = true;
   this.done = false;
+    
   
-  this.next = () => {
+  this.next = async () => {
     if (this.done){
       return;
     }
-    var cond;
-    try {
-      cond = this.condition();
-    } catch (e) {
-      console.error("Error in Repeat Until condition");
-      throw e;
-    }
-    
-    if (cond){
-      this.done = true;
-      if (after) {
-        if (after.length) {
-	  after(this.curTimes);
-	} else {
-	  after();
+
+    // if the previous iteration is done
+    if (this.funcDone) {
+      // check our condition
+      var cond;
+      if (Number.isInteger(this.condition)) {
+        cond = this.condition <= this.curTimes;
+      } else {
+        try {
+          cond = this.condition();
+        } catch (e) {
+          console.error("Error in Repeat Until condition");
+          throw e;
 	}
       }
-      return;
-    } else {
-      // increment even if func doesn't expect argument in case after does
-      this.curTimes++; 
-      if (this.func.length) {
-        this.func(this.curTimes);
-      } else {
-        this.func();
+
+      // if our stop condition is satisfied
+      if (cond){
+        this.done = true;
+        if (after) {
+          if (after.length) {
+	    after(this.curTimes);
+	  } else {
+	    after();
+	  }
+        }
+        return;
+      } else { // else we should iterate again
+        this.curTimes++;
+	if (this.blocking) {
+	  this.funcDone = false;
+	}
+	if (this.func.length) {
+	  if (this.blocking) {
+	    await this.func(this.curTimes);
+	    this.funcDone = true;
+	  } else {
+            this.func(this.curTimes);
+	  }
+	} else {
+	  if (this.blocking) {
+	    await this.func();
+	    this.funcDone = true;
+	  } else {
+	    this.func();
+	  }
+	}
       }
     }
   };
