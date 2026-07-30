@@ -59,7 +59,7 @@ function tryRunningCode(doc, codeValue, errorCallback) {
 	    plugins: [injectLoopBreakerPlugin],
             retainLines: true,
         })
-        var code = result.code;
+	var code = "(async () => {" + result.code + "\n})()\n//# sourceURL=user-code.js";
 	
 	var script = doc.createElement("script");
 	script.type = "text/javascript";

@@ -23,7 +23,9 @@
 
   function validator(text, options) {
     if (!window.JSHINT) return [];
-    JSHINT(text, options, options.globals);
+      // WoofJS addition, should match the corresponding line in run-code.js
+      var code = "(async () => {" + text + "\n})()\n//# sourceURL=user-code.js";
+    JSHINT(code, options, options.globals);
     var errors = JSHINT.data().errors, result = [];
     if (errors) parseErrors(errors, result);
     return result;
