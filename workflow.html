@@ -58,7 +58,7 @@
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
   <script src="./vendor/codemirror/dialog.js"></script>
   <link rel="stylesheet" href="./vendor/codemirror/lint.css">
-  <script src="./vendor/codemirror/jshint.min.js"></script>
+  <script src="./vendor/codemirror/jshint.js"></script>
   <script src="./vendor/codemirror/lint.js"></script>
   <script src="./vendor/codemirror/scrollpastend.js"></script>
   <script src="https://unpkg.com/vue@2.0.1/dist/vue.js"></script>
@@ -1509,7 +1509,7 @@
         lint: {
           delay: 800,
           options: {
-            "esnext": true,
+            "esversion": 8,
             "asi": true
           }
         },
